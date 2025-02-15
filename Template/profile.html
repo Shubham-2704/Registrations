@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile Page</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+/* Centering and spacing */
+.profile-img-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+/* Rounded profile image */
+.profile-img {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    object-fit: cover;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+    border: 2px solid black; /* Added black border */
+}
+
+/* Spacing between text and input fields */
+.form-label {
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.form-control {
+    padding: 8px;
+    font-size: 16px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 576px) {
+    .profile-img {
+        width: 120px;
+        height: 120px;
+    }
+}
+</style>
+
+</head>
+<body>
+    <div class="container mt-5">
+        <h2 class="text-center mb-4">Profile Page</h2>
+        <div class="card p-4">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert 
+                        {% if message.tags == 'success' %} alert-success 
+                        {% elif message.tags == 'error' %} alert-danger 
+                        {% elif message.tags == 'warning' %} alert-warning 
+                        {% elif message.tags == 'info' %} alert-info 
+                        {% else %} alert-secondary {% endif %} 
+                        alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+            <form id="profileForm" method = "POST" enctype="multipart/form-data">
+            {% csrf_token %}
+                    <div class="mb-3 text-center">
+                        <label for="photo" class="form-label d-block fw-bold">Profile Photo</label>
+
+                        <div class="profile-img-container">
+                            {% if user_profile.profile_photo %}
+                                <img id="preview" src="{{ user_profile.profile_photo.url }}" class="profile-img">
+                            {% else %}
+                                <img id="preview" src="#" class="profile-img" style="display: none;">
+                            {% endif %}
+                        </div>
+
+                        <input type="file" class="form-control mt-3" name="profile_photo" id="photo">
+                    </div>            
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="firstName" class="form-label">First Name</label>
+                        <input type="text" class="form-control" id="firstName" name = "firstname" value="{{ request.user.first_name }}" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="lastName" class="form-label">Last Name</label>
+                        <input type="text" class="form-control" id="lastName" name = "lastname" value="{{ request.user.last_name }}"  required>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="dob" class="form-label">Date of Birth</label>
+                        <input type="date" class="form-control" id="dob" name = "dob"value="{{ user_profile.dob|date:'Y-m-d' }}" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Gender</label>
+                        <select class="form-control" id="gender" name = "gender" required>
+                            <option value="">Select</option>
+                            <option value="Male" {% if user_profile.gender == "Male" %}selected{% endif %}>Male</option>
+                            <option value="Female" {% if user_profile.gender == "Female" %}selected{% endif %}>Female</option>
+                            <option value="Other" {% if user_profile.gender == "Other" %}selected{% endif %}>Other</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="mobile" class="form-label">Mobile Number</label>
+                        <input type="tel" class="form-control" id="mobile"  name = "mobile_number" value="{{ user_profile.mobile_number|default:'' }}" required>
+                        <small id="mobile_error" class="text-danger" style="display: none;">Enter a valid 10-digit mobile number.</small>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" name = "email" value="{{ request.user.email }}" required>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="address" class="form-label">Address</label>
+                    <textarea class="form-control" id="address" rows="3"  name = "address" required>{{ user_profile.address|default:'' }}</textarea>
+                </div>
+                <button type="submit" class="btn btn-primary w-100" >Update Profile</button>
+                <br>
+                <br>        
+                <a href="{% url 'index' %}" class="btn btn-success w-100">Home Page</a>
+            </form>
+        </div>
+    </div>
+
+<script>
+    function refreshProfilePhoto() {
+        let img = document.getElementById("preview");
+        img.src = img.src.split("?")[0] + "?" + new Date().getTime();  // Break cache
+    }
+
+    document.getElementById("photo").addEventListener("change", function(event) {
+        let reader = new FileReader();
+        reader.onload = function(){
+            let preview = document.getElementById("preview");
+            preview.src = reader.result;
+            preview.style.display = "block";
+        };
+        reader.readAsDataURL(event.target.files[0]);
+
+        setTimeout(refreshProfilePhoto, 2000);  // Ensure the image updates after form submission
+    });
+</script>
+
+{% comment %} Add Auto-Close Feature (Optional) {% endcomment %}
+<script>
+    setTimeout(function () {
+        let alerts = document.querySelectorAll('.alert');
+        alerts.forEach(function (alert) {
+            let bsAlert = new bootstrap.Alert(alert);
+            bsAlert.close();
+        });
+    }, 3000);  // 3 seconds
+</script>
+
+{% comment %} #JavaScript to Preview Image Before Upload {% endcomment %}
+<script>
+    document.getElementById("photo").addEventListener("change", function(event) {
+        let reader = new FileReader();
+        reader.onload = function(){
+            let preview = document.getElementById("preview");
+            preview.src = reader.result;
+            preview.style.display = "block";
+        };
+        reader.readAsDataURL(event.target.files[0]);
+    });
+</script>
+
+ {% comment %} Add JavaScript Mobile Validation {% endcomment %}
+<script>
+    document.getElementById("mobile_number").addEventListener("input", function () {
+        let mobileInput = this.value;
+        let errorMessage = document.getElementById("mobile_error");
+
+        // Remove non-numeric characters
+        this.value = mobileInput.replace(/\D/g, '');
+
+        // Check if length is exactly 10
+        if (this.value.length !== 10) {
+            errorMessage.style.display = "block";
+        } else {
+            errorMessage.style.display = "none";
+        }
+    });
+</script>
+
+{% comment %} Prevent Back Navigation After Login or Logout {% endcomment %}
+<script>
+    if (window.history.replaceState) {
+        window.history.replaceState(null, null, window.location.href);
+    }
+    
+    // Prevent going back after logout
+    function preventBack() {
+        window.history.forward();
+    }
+    setTimeout(preventBack, 0);
+    window.onunload = function () { null };
+</script>
+
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+</html>
